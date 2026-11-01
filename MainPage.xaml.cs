@@ -1,0 +1,462 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Collections.Specialized;
+using System.ComponentModel;
+using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Input;
+using System.Windows.Media;
+using System.Windows.Navigation;
+using System.Windows.Threading;
+using Microsoft.Phone.Controls;
+using Microsoft.Phone.Shell;
+
+namespace ArtHub
+{
+    public partial class MainPage : PhoneApplicationPage
+    {
+        static readonly Feed Posts = new Feed("");
+        static ArtItem _favAnchor;
+        static int _seenVersion = -1;
+        static int _seenAi = -1;
+
+        // история: предыдущие запросы и страницы, как в браузере
+        static readonly List<KeyValuePair<string, int>> History = new List<KeyValuePair<string, int>>();
+
+        private readonly ProgressIndicator _progress =
+            new ProgressIndicator { IsIndeterminate = true, IsVisible = false };
+        private readonly DispatcherTimer _timer =
+            new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(350) };
+        private string _skipText;
+        private bool _scrollTop;
+
+        public MainPage()
+        {
+            InitializeComponent();
+            SystemTray.SetProgressIndicator(this, _progress);
+
+            double w = Application.Current.Host.Content.ActualWidth;
+            double cell = Math.Floor((w - 36) / 3);
+            PostsList.GridCellSize = new Size(cell, cell);
+            FavList.GridCellSize = new Size(cell, cell);
+
+            Favorites.Load();
+            PostsList.ItemsSource = Posts.Items;
+            FavList.ItemsSource = Favorites.Items;
+
+            _skipText = Posts.Query.Length > 0 ? Posts.Query + " " : "";
+            SearchBox.Text = _skipText;
+            _timer.Tick += Timer_Tick;
+
+            Loaded += MainPage_Loaded;
+        }
+
+        private void MainPage_Loaded(object sender, RoutedEventArgs e)
+        {
+            UpdateBusy();
+            UpdateFavEmpty();
+
+            Dispatcher.BeginInvoke(() =>
+            {
+                try
+                {
+                    if (Posts.Anchor != null && Posts.Items.Contains(Posts.Anchor))
+                        PostsList.ScrollTo(Posts.Anchor);
+                    if (_favAnchor != null && Favorites.Items.Contains(_favAnchor))
+                        FavList.ScrollTo(_favAnchor);
+                }
+                catch { }
+            });
+        }
+
+        // ---------- жизненный цикл ----------
+        protected override void OnNavigatedTo(NavigationEventArgs e)
+        {
+            base.OnNavigatedTo(e);
+
+            Posts.Changed += UpdateBusy;
+            Posts.PageLoaded += OnPageLoaded;
+            Posts.Error += ShowError;
+            Favorites.Items.CollectionChanged += Fav_Changed;
+
+            SourceText.Text = Sources.Current.Name;
+
+            bool sourcesChanged = _seenVersion != Sources.Version;
+            bool aiChanged = _seenAi != Settings.Version;
+            _seenVersion = Sources.Version;
+            _seenAi = Settings.Version;
+
+            if (sourcesChanged)
+            {
+                History.Clear();
+                Api.ClearCache();
+
+                _skipText = "";
+                SearchBox.Text = "";
+                MainPivot.SelectedItem = PostsItem;
+                Nav.Query = null;
+
+                _scrollTop = true;
+                Posts.Open("", 1);
+            }
+            else if (aiChanged)
+            {
+                _scrollTop = true;
+                Posts.Reload();
+            }
+
+            if (Nav.Query != null)
+            {
+                string q = Nav.Query;
+                Nav.Query = null;
+                StartSearch(q);
+            }
+            else if (Posts.Page == 0)
+            {
+                _scrollTop = true;
+                Posts.Open("", 1);
+            }
+
+            BuildPager();
+            UpdateBusy();
+            UpdateFavEmpty();
+        }
+
+        protected override void OnNavigatedFrom(NavigationEventArgs e)
+        {
+            Posts.Changed -= UpdateBusy;
+            Posts.PageLoaded -= OnPageLoaded;
+            Posts.Error -= ShowError;
+            Favorites.Items.CollectionChanged -= Fav_Changed;
+            _progress.IsVisible = false;
+            base.OnNavigatedFrom(e);
+        }
+
+        // кнопка «Назад»: вкладка posts, потом история запросов, потом выход
+        protected override void OnBackKeyPress(CancelEventArgs e)
+        {
+            if (MainPivot.SelectedItem != PostsItem)
+            {
+                e.Cancel = true;
+                MainPivot.SelectedItem = PostsItem;
+                return;
+            }
+
+            if (History.Count > 0)
+            {
+                e.Cancel = true;
+
+                var prev = History[History.Count - 1];
+                History.RemoveAt(History.Count - 1);
+
+                _skipText = prev.Key.Length > 0 ? prev.Key + " " : "";
+                SearchBox.Text = _skipText;
+
+                _scrollTop = true;
+                Posts.Open(prev.Key, prev.Value);
+                return;
+            }
+
+            if (MessageBox.Show("Exit the app?", "exit", MessageBoxButton.OKCancel) != MessageBoxResult.OK)
+                e.Cancel = true;
+        }
+
+        // запоминаем текущее состояние, прежде чем уйти на другой запрос или страницу
+        private void PushHistory(string newQuery, int newPage)
+        {
+            if (Posts.Page < 1) return;
+            if (Posts.Query == newQuery && Posts.Page == newPage) return;
+
+            History.Add(new KeyValuePair<string, int>(Posts.Query, Posts.Page));
+            if (History.Count > 50) History.RemoveAt(0);
+        }
+
+        // ---------- загрузка и пустое избранное ----------
+        private void UpdateBusy()
+        {
+            bool loading = Posts.IsLoading;
+
+            _progress.IsVisible = loading;
+            PagerRoot.Visibility = (!loading && Posts.Page >= 1) ? Visibility.Visible : Visibility.Collapsed;
+
+            if (SourceText.Text != "network error")
+                SourceText.Text = Sources.Current.Name;
+        }
+
+        private void Fav_Changed(object sender, NotifyCollectionChangedEventArgs e)
+        {
+            UpdateFavEmpty();
+        }
+
+        private void UpdateFavEmpty()
+        {
+            FavEmpty.Visibility = Favorites.Items.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+        }
+
+        private void OnPageLoaded()
+        {
+            BuildPager();
+            UpdateBusy();
+
+            if (_scrollTop && Posts.Items.Count > 0)
+            {
+                _scrollTop = false;
+                Dispatcher.BeginInvoke(() =>
+                {
+                    try { PostsList.ScrollTo(Posts.Items[0]); }
+                    catch { }
+                });
+            }
+        }
+
+        private void ShowError(string message)
+        {
+            SourceText.Text = "network error";
+            var t = new DispatcherTimer { Interval = TimeSpan.FromSeconds(4) };
+            t.Tick += (s, e) =>
+            {
+                t.Stop();
+                SourceText.Text = Sources.Current.Name;
+            };
+            t.Start();
+        }
+
+        // ---------- переключатель страниц ----------
+        private void GoPage(int page)
+        {
+            if (page < 1 || Posts.IsLoading) return;
+
+            Focus();   // убирает клавиатуру
+            MainPivot.SelectedItem = PostsItem;
+
+            PushHistory(Posts.Query, page);
+            _scrollTop = true;
+            Posts.Open(Posts.Query, page);
+        }
+
+        // кнопка в стиле Windows: рамка, при нажатии заливается
+        private UIElement PagerButton(string text, bool current, bool enabled, int target)
+        {
+            var dark = (Brush)Application.Current.Resources["TextDark"];
+            var header = (Brush)Application.Current.Resources["HeaderBg"];
+            var white = new SolidColorBrush(Colors.White);
+
+            var label = new TextBlock
+            {
+                Text = text,
+                FontSize = 24,
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Center,
+                Foreground = current ? white : dark
+            };
+
+            var box = new Border
+            {
+                Child = label,
+                Height = 56,
+                Margin = new Thickness(2),
+                BorderThickness = new Thickness(2),
+                BorderBrush = current ? header : dark,
+                Background = current ? header : new SolidColorBrush(Colors.Transparent),
+                Opacity = enabled ? 1.0 : 0.35
+            };
+
+            if (enabled && !current)
+            {
+                box.MouseLeftButtonDown += (s, e) =>
+                {
+                    box.Background = dark;
+                    label.Foreground = white;
+                };
+                Action restore = () =>
+                {
+                    box.Background = new SolidColorBrush(Colors.Transparent);
+                    label.Foreground = dark;
+                };
+                box.MouseLeftButtonUp += (s, e) => restore();
+                box.MouseLeave += (s, e) => restore();
+
+                int t = target;
+                box.Tap += (s, e) => GoPage(t);
+            }
+
+            return box;
+        }
+
+        private static void ResetGrid(Grid g, int columns)
+        {
+            g.Children.Clear();
+            g.ColumnDefinitions.Clear();
+            for (int i = 0; i < columns; i++)
+                g.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        }
+
+        private void BuildPager()
+        {
+            int cur = Posts.Page;
+            ResetGrid(PagerGrid, 5);
+            ResetGrid(NavGrid, 4);
+            if (cur < 1) return;
+
+            // номера: 2 назад, текущая, 2 вперёд
+            int start = Math.Max(1, cur - 2);
+            int end = Posts.HasNext ? start + 4 : cur;
+            for (int p = start; p <= end; p++)
+            {
+                UIElement b = PagerButton(p.ToString(), p == cur, true, p);
+                Grid.SetColumn((FrameworkElement)b, p - start);
+                PagerGrid.Children.Add(b);
+            }
+
+            // << < > >>
+            UIElement[] nav =
+            {
+                PagerButton("<<", false, cur > 1, Math.Max(1, cur - 10)),
+                PagerButton("<", false, cur > 1, cur - 1),
+                PagerButton(">", false, Posts.HasNext, cur + 1),
+                PagerButton(">>", false, Posts.HasNext, cur + 10)
+            };
+            for (int i = 0; i < nav.Length; i++)
+            {
+                Grid.SetColumn((FrameworkElement)nav[i], i);
+                NavGrid.Children.Add(nav[i]);
+            }
+        }
+
+        private void Go_Click(object sender, RoutedEventArgs e)
+        {
+            int p;
+            if (int.TryParse((PageBox.Text ?? "").Trim(), out p) && p >= 1)
+                GoPage(p);
+        }
+
+        // ---------- поиск ----------
+        private void StartSearch(string q)
+        {
+            _timer.Stop();
+            Suggestions.Visibility = Visibility.Collapsed;
+
+            string text = (q ?? "").Replace(',', ' ').Trim().ToLowerInvariant();
+            while (text.Contains("  ")) text = text.Replace("  ", " ");
+
+            _skipText = text.Length > 0 ? text + " " : "";
+            SearchBox.Text = _skipText;
+            Focus();
+
+            MainPivot.SelectedItem = PostsItem;
+
+            PushHistory(text, 1);
+            _scrollTop = true;
+            Posts.Open(text, 1);
+        }
+
+        private void Search_Click(object sender, RoutedEventArgs e)
+        {
+            StartSearch(SearchBox.Text);
+        }
+
+        private void SearchBox_KeyUp(object sender, KeyEventArgs e)
+        {
+            if (e.Key == Key.Enter) StartSearch(SearchBox.Text);
+        }
+
+        private void SearchBox_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            if (SearchBox.Text == _skipText) return;
+            _timer.Stop();
+            _timer.Start();
+        }
+
+        private async void Timer_Tick(object sender, EventArgs e)
+        {
+            _timer.Stop();
+
+            string text = SearchBox.Text ?? "";
+            int sp = text.LastIndexOf(' ');
+            string word = sp >= 0 ? text.Substring(sp + 1) : text;
+            string neg = word.StartsWith("-") ? "-" : "";
+            string term = word.TrimStart('-');
+
+            if (term.Length < 2)
+            {
+                Suggestions.Visibility = Visibility.Collapsed;
+                return;
+            }
+
+            List<TagSuggestion> list = await Api.Suggest(term);
+
+            if ((SearchBox.Text ?? "") != text) return;
+
+            if (list.Count == 0)
+            {
+                Suggestions.Visibility = Visibility.Collapsed;
+                return;
+            }
+
+            foreach (TagSuggestion s in list) s.Value = neg + s.Value;
+            Suggestions.ItemsSource = list;
+            Suggestions.Visibility = Visibility.Visible;
+        }
+
+        private void Suggestions_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            var s = Suggestions.SelectedItem as TagSuggestion;
+            if (s == null) return;
+            Suggestions.SelectedItem = null;
+
+            string text = SearchBox.Text ?? "";
+            int sp = text.LastIndexOf(' ');
+            string newText = (sp >= 0 ? text.Substring(0, sp + 1) : "") + s.Value + " ";
+
+            _skipText = newText;
+            SearchBox.Text = newText;
+            SearchBox.SelectionStart = newText.Length;
+            Suggestions.Visibility = Visibility.Collapsed;
+            SearchBox.Focus();
+        }
+
+        // ---------- открытие поста ----------
+        private void List_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            var list = (LongListSelector)sender;
+            var item = list.SelectedItem as ArtItem;
+            if (item == null) return;
+            list.SelectedItem = null;
+
+            if (list == PostsList) Posts.Anchor = item;
+            else _favAnchor = item;
+
+            Nav.Selected = item;
+            NavigationService.Navigate(new Uri("/DetailPage.xaml", UriKind.Relative));
+        }
+
+        // ---------- меню ----------
+        private void Refresh_Click(object sender, EventArgs e)
+        {
+            if (MainPivot.SelectedItem == FavItem) return;
+
+            _scrollTop = true;
+            Posts.Reload();
+        }
+
+        private void ClearSearch_Click(object sender, EventArgs e)
+        {
+            StartSearch("");
+        }
+
+        private void SwitchSource_Click(object sender, EventArgs e)
+        {
+            NavigationService.Navigate(new Uri("/SourcesPage.xaml?pick=1", UriKind.Relative));
+        }
+
+        private void Settings_Click(object sender, EventArgs e)
+        {
+            NavigationService.Navigate(new Uri("/SettingsPage.xaml", UriKind.Relative));
+        }
+
+        private void MainPivot_Loaded(object sender, RoutedEventArgs e)
+        {
+
+        }
+    }
+}

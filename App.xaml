@@ -1,0 +1,41 @@
+﻿<Application
+    x:Class="ArtHub.App"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:phone="clr-namespace:Microsoft.Phone.Controls;assembly=Microsoft.Phone"
+    xmlns:shell="clr-namespace:Microsoft.Phone.Shell;assembly=Microsoft.Phone">
+
+    <!--Ресурсы приложения-->
+    <Application.Resources>
+        <local:LocalizedStrings xmlns:local="clr-namespace:ArtHub" x:Key="LocalizedStrings"/>
+        <SolidColorBrush x:Key="HeaderBg" Color="#FF4E6252"/>
+        <SolidColorBrush x:Key="PageBg" Color="#FFCED9CC"/>
+        <SolidColorBrush x:Key="PhoneBackgroundBrush" Color="#FFCED9CC"/>
+        <SolidColorBrush x:Key="PhoneForegroundBrush" Color="#FF4E6252"/>
+        <SolidColorBrush x:Key="CardBg" Color="#FFDCE6DB"/>
+        <SolidColorBrush x:Key="TextDark" Color="#FF3F4A41"/>
+        <SolidColorBrush x:Key="TextDim" Color="#FF6B796D"/>
+
+        <Style x:Key="MenuBig" TargetType="TextBlock">
+            <Setter Property="FontFamily" Value="Segoe WP Light"/>
+            <Setter Property="FontSize" Value="44"/>
+            <Setter Property="Foreground" Value="{StaticResource TextDark}"/>
+            <Setter Property="Margin" Value="0,6,0,0"/>
+        </Style>
+
+        <Style x:Key="MenuSub" TargetType="TextBlock">
+            <Setter Property="FontFamily" Value="Segoe WP Light"/>
+            <Setter Property="FontSize" Value="34"/>
+            <Setter Property="Foreground" Value="{StaticResource TextDim}"/>
+            <Setter Property="Margin" Value="24,4,0,0"/>
+        </Style>
+    </Application.Resources>
+
+    <Application.ApplicationLifetimeObjects>
+        <!--Обязательный объект, обрабатывающий события времени жизни приложения-->
+        <shell:PhoneApplicationService
+            Launching="Application_Launching" Closing="Application_Closing"
+            Activated="Application_Activated" Deactivated="Application_Deactivated"/>
+    </Application.ApplicationLifetimeObjects>
+
+</Application>
