@@ -11,4 +11,4 @@ Typically, you can obtain these credentials by navigating to:
 `My Account > Options > API Access Credentials > Generate New Key? > Save`
 
 ## Screenshots
-![Top](https://github.com/Bebber228/BooruHub/blob/main/Screenshots.png?raw=true)
+![Screenshots](https://github.com/Bebber228/BooruHub/blob/main/Screenshots.png?raw=true)
