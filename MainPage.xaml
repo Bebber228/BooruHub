@@ -36,16 +36,21 @@
     <phone:PhoneApplicationPage.Resources>
         <local:ImageConverter x:Key="Img"/>
 
+        <!-- плитка: размер задаётся в коде -->
         <DataTemplate x:Key="GridItem">
-            <Grid Margin="2">
-                <Border Background="{StaticResource CardBg}">
+            <Grid Loaded="Tile_Loaded" Tap="Tile_Tap" Background="Transparent">
+                <Border Margin="2" Background="{StaticResource CardBg}">
                     <Image Source="{Binding ImageUrl, Converter={StaticResource Img}, ConverterParameter=240}"
                            Stretch="UniformToFill"/>
                 </Border>
-                <Border BorderBrush="#FF1E6FE0" BorderThickness="3"
+                <Border Margin="2" BorderBrush="#FF1E6FE0" BorderThickness="3"
                         IsHitTestVisible="False" Visibility="{Binding MediaVisible}"/>
             </Grid>
         </DataTemplate>
+
+        <ItemsPanelTemplate x:Key="WrapPanelTemplate">
+            <toolkit:WrapPanel/>
+        </ItemsPanelTemplate>
 
         <DataTemplate x:Key="SuggestItem">
             <TextBlock Text="{Binding Label}" FontSize="26" Margin="12,6"
@@ -84,7 +89,7 @@
 
         <phone:Pivot x:Name="MainPivot" Grid.Row="1" Margin="0,-12,0,0"
                      Foreground="White" Background="Transparent"
-                     SelectedIndex="1" Loaded="MainPivot_Loaded">
+                     SelectedIndex="1">
             <phone:Pivot.HeaderTemplate>
                 <DataTemplate>
                     <TextBlock Text="{Binding}" FontSize="64" FontFamily="Segoe WP Light"/>
@@ -129,17 +134,18 @@
             </phone:PivotItem>
 
             <!-- posts -->
-            <phone:PivotItem x:Name="PostsItem" Header="posts" Margin="0,20,0,0">
-                <phone:LongListSelector x:Name="PostsList"
-                                        LayoutMode="Grid"
-                                        Margin="6,0"
-                                        ItemTemplate="{StaticResource GridItem}"
-                                        SelectionChanged="List_SelectionChanged">
-                    <phone:LongListSelector.ListHeader>
-                        <Border Height="16"/>
-                    </phone:LongListSelector.ListHeader>
+            <phone:PivotItem x:Name="PostsItem" Header="posts" Margin="0,8,0,0">
+                <ScrollViewer x:Name="PostsScroll"
+                              VerticalScrollBarVisibility="Hidden"
+                              HorizontalScrollBarVisibility="Disabled" Margin="0,12,0,0">
+                    <StackPanel>
+                        <Border Height="7"/>
 
-                    <phone:LongListSelector.ListFooter>
+                        <ItemsControl x:Name="PostsGrid"
+                                      HorizontalAlignment="Center"
+                                      ItemTemplate="{StaticResource GridItem}"
+                                      ItemsPanel="{StaticResource WrapPanelTemplate}"/>
+
                         <StackPanel x:Name="PagerRoot" Margin="0,12,0,36" Visibility="Collapsed">
                             <!-- номера страниц -->
                             <Grid x:Name="PagerGrid"/>
@@ -166,22 +172,25 @@
                                         BorderBrush="{StaticResource TextDark}"/>
                             </Grid>
                         </StackPanel>
-                    </phone:LongListSelector.ListFooter>
-                </phone:LongListSelector>
+                    </StackPanel>
+                </ScrollViewer>
             </phone:PivotItem>
 
             <!-- favourites -->
             <phone:PivotItem x:Name="FavItem" Header="favourites" Margin="0,8,0,0">
                 <Grid>
-                    <phone:LongListSelector x:Name="FavList"
-                                            LayoutMode="Grid"
-                                            Margin="6,10,6,0"
-                                            ItemTemplate="{StaticResource GridItem}"
-                                            SelectionChanged="List_SelectionChanged">
-                        <phone:LongListSelector.ListHeader>
-                            <Border Height="16"/>
-                        </phone:LongListSelector.ListHeader>
-                    </phone:LongListSelector>
+                    <ScrollViewer x:Name="FavScroll"
+                                  VerticalScrollBarVisibility="Hidden"
+                                  HorizontalScrollBarVisibility="Disabled" Margin="0,12,0,0">
+                        <StackPanel>
+                            <Border Height="7"/>
+                            <ItemsControl x:Name="FavGrid"
+                                          HorizontalAlignment="Center"
+                                          ItemTemplate="{StaticResource GridItem}"
+                                          ItemsPanel="{StaticResource WrapPanelTemplate}"/>
+                            <Border Height="36"/>
+                        </StackPanel>
+                    </ScrollViewer>
 
                     <!-- заглушка, когда избранное пустое -->
                     <StackPanel x:Name="FavEmpty" Visibility="Collapsed"
@@ -189,7 +198,7 @@
                                 Margin="40,0,40,60" IsHitTestVisible="False">
                         <Image Source="/Assets/Icons/image_multiple.png"
                                Width="120" Height="120" Stretch="Uniform"/>
-                        <TextBlock Text="Your liked photos will be stored here"
+                        <TextBlock Text="The images you've liked will appear here"
                                    FontSize="22" TextWrapping="Wrap" TextAlignment="Center"
                                    Margin="0,16,0,0"
                                    Foreground="{StaticResource TextDim}"/>

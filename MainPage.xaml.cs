@@ -7,6 +7,7 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Navigation;
+using Microsoft.Phone.Net.NetworkInformation;
 using System.Windows.Threading;
 using Microsoft.Phone.Controls;
 using Microsoft.Phone.Shell;
@@ -16,9 +17,12 @@ namespace ArtHub
     public partial class MainPage : PhoneApplicationPage
     {
         static readonly Feed Posts = new Feed("");
-        static ArtItem _favAnchor;
         static int _seenVersion = -1;
         static int _seenAi = -1;
+        static bool _trayShown;      // верхняя панель показана после первого запуска
+        static double _cell = 150;   // размер плитки
+        static double _postsOffset;  // положение прокрутки при уходе на пост
+        static double _favOffset;
 
         // история: предыдущие запросы и страницы, как в браузере
         static readonly List<KeyValuePair<string, int>> History = new List<KeyValuePair<string, int>>();
@@ -29,41 +33,85 @@ namespace ArtHub
             new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(350) };
         private string _skipText;
         private bool _scrollTop;
+        private bool _netError;
+        private bool _lostShown;
 
+        private readonly DispatcherTimer _lostTimer =
+    new DispatcherTimer { Interval = TimeSpan.FromSeconds(3) };
         public MainPage()
         {
             InitializeComponent();
             SystemTray.SetProgressIndicator(this, _progress);
 
-            double w = Application.Current.Host.Content.ActualWidth;
-            double cell = Math.Floor((w - 36) / 3);
-            PostsList.GridCellSize = new Size(cell, cell);
-            FavList.GridCellSize = new Size(cell, cell);
+            // при запуске верхняя панель скрыта, появляется после загрузки страницы
+            if (!_trayShown) SystemTray.SetIsVisible(this, false);
+
+            ApplyGrid();
 
             Favorites.Load();
-            PostsList.ItemsSource = Posts.Items;
-            FavList.ItemsSource = Favorites.Items;
+            PostsGrid.ItemsSource = Posts.Items;
+            FavGrid.ItemsSource = Favorites.Items;
 
             _skipText = Posts.Query.Length > 0 ? Posts.Query + " " : "";
             SearchBox.Text = _skipText;
             _timer.Tick += Timer_Tick;
 
+            _lostTimer.Tick += (s, e) =>
+            {
+                _lostTimer.Stop();
+                _netError = false;
+                _lostShown = false;
+                UpdateTray();
+            };
+
             Loaded += MainPage_Loaded;
+        }
+
+        // размер плиток по настройке: от 2 до 4 колонок, сетка по центру без полосы справа
+        private void ApplyGrid()
+        {
+            double w = Application.Current.Host.Content.ActualWidth;
+            int cols = Settings.GridColumns;
+            _cell = Math.Floor((w - 12) / cols);
+
+            PostsGrid.Width = _cell * cols;
+            FavGrid.Width = _cell * cols;
+        }
+
+        private void Tile_Loaded(object sender, RoutedEventArgs e)
+        {
+            var g = (Grid)sender;
+            g.Width = _cell;
+            g.Height = _cell;
+        }
+
+        private void Tile_Tap(object sender, System.Windows.Input.GestureEventArgs e)
+        {
+            var item = ((FrameworkElement)sender).DataContext as ArtItem;
+            if (item == null) return;
+
+            _postsOffset = PostsScroll.VerticalOffset;
+            _favOffset = FavScroll.VerticalOffset;
+
+            Nav.Selected = item;
+            NavigationService.Navigate(new Uri("/DetailPage.xaml", UriKind.Relative));
         }
 
         private void MainPage_Loaded(object sender, RoutedEventArgs e)
         {
+            _trayShown = true;
+            SystemTray.SetIsVisible(this, true);
+
             UpdateBusy();
             UpdateFavEmpty();
 
+            // возвращаемся к месту в ленте, где открывали пост
             Dispatcher.BeginInvoke(() =>
             {
                 try
                 {
-                    if (Posts.Anchor != null && Posts.Items.Contains(Posts.Anchor))
-                        PostsList.ScrollTo(Posts.Anchor);
-                    if (_favAnchor != null && Favorites.Items.Contains(_favAnchor))
-                        FavList.ScrollTo(_favAnchor);
+                    PostsScroll.ScrollToVerticalOffset(_postsOffset);
+                    FavScroll.ScrollToVerticalOffset(_favOffset);
                 }
                 catch { }
             });
@@ -73,10 +121,12 @@ namespace ArtHub
         protected override void OnNavigatedTo(NavigationEventArgs e)
         {
             base.OnNavigatedTo(e);
+            ApplyGrid();
 
             Posts.Changed += UpdateBusy;
             Posts.PageLoaded += OnPageLoaded;
             Posts.Error += ShowError;
+            DeviceNetworkInformation.NetworkAvailabilityChanged += Network_Changed;
             Favorites.Items.CollectionChanged += Fav_Changed;
 
             SourceText.Text = Sources.Current.Name;
@@ -96,11 +146,13 @@ namespace ArtHub
                 MainPivot.SelectedItem = PostsItem;
                 Nav.Query = null;
 
+                _postsOffset = 0;
                 _scrollTop = true;
                 Posts.Open("", 1);
             }
             else if (aiChanged)
             {
+                _postsOffset = 0;
                 _scrollTop = true;
                 Posts.Reload();
             }
@@ -113,8 +165,13 @@ namespace ArtHub
             }
             else if (Posts.Page == 0)
             {
+                // новый запуск или восстановление после сворачивания
+                string q0 = Settings.LastQuery;
+                _skipText = q0.Length > 0 ? q0 + " " : "";
+                SearchBox.Text = _skipText;
+
                 _scrollTop = true;
-                Posts.Open("", 1);
+                Posts.Open(q0, Settings.LastPage);
             }
 
             BuildPager();
@@ -127,6 +184,7 @@ namespace ArtHub
             Posts.Changed -= UpdateBusy;
             Posts.PageLoaded -= OnPageLoaded;
             Posts.Error -= ShowError;
+            DeviceNetworkInformation.NetworkAvailabilityChanged -= Network_Changed;
             Favorites.Items.CollectionChanged -= Fav_Changed;
             _progress.IsVisible = false;
             base.OnNavigatedFrom(e);
@@ -158,7 +216,13 @@ namespace ArtHub
             }
 
             if (MessageBox.Show("Exit the app?", "exit", MessageBoxButton.OKCancel) != MessageBoxResult.OK)
+            {
                 e.Cancel = true;
+                return;
+            }
+
+            // выход подтверждён: сессию не сохраняем
+            Settings.ClearSession();
         }
 
         // запоминаем текущее состояние, прежде чем уйти на другой запрос или страницу
@@ -175,12 +239,40 @@ namespace ArtHub
         private void UpdateBusy()
         {
             bool loading = Posts.IsLoading;
+            if (loading) _netError = false;
 
-            _progress.IsVisible = loading;
             PagerRoot.Visibility = (!loading && Posts.Page >= 1) ? Visibility.Visible : Visibility.Collapsed;
+            UpdateTray();
+        }
 
-            if (SourceText.Text != "network error")
-                SourceText.Text = Sources.Current.Name;
+        private void UpdateTray()
+        {
+            bool lost = !DeviceNetworkInformation.IsNetworkAvailable || _netError;
+
+            if (lost && !_lostShown)
+            {
+                // показываем сообщение один раз на 3 секунды
+                _lostShown = true;
+                _lostTimer.Stop();
+                _lostTimer.Start();
+            }
+
+            if (lost && _lostTimer.IsEnabled)
+            {
+                _progress.IsIndeterminate = false;
+                _progress.Text = "connection lost";
+                _progress.IsVisible = true;
+            }
+            else if (Posts.IsLoading)
+            {
+                _progress.IsIndeterminate = true;
+                _progress.Text = "loading posts...";
+                _progress.IsVisible = true;
+            }
+            else
+            {
+                _progress.IsVisible = false;
+            }
         }
 
         private void Fav_Changed(object sender, NotifyCollectionChangedEventArgs e)
@@ -195,15 +287,17 @@ namespace ArtHub
 
         private void OnPageLoaded()
         {
+            Settings.SaveSession(Posts.Query, Posts.Page);
+
             BuildPager();
             UpdateBusy();
 
-            if (_scrollTop && Posts.Items.Count > 0)
+            if (_scrollTop)
             {
                 _scrollTop = false;
                 Dispatcher.BeginInvoke(() =>
                 {
-                    try { PostsList.ScrollTo(Posts.Items[0]); }
+                    try { PostsScroll.ScrollToVerticalOffset(0); }
                     catch { }
                 });
             }
@@ -211,14 +305,24 @@ namespace ArtHub
 
         private void ShowError(string message)
         {
-            SourceText.Text = "network error";
-            var t = new DispatcherTimer { Interval = TimeSpan.FromSeconds(4) };
-            t.Tick += (s, e) =>
+            _netError = true;
+            UpdateTray();
+        }
+
+        private void Network_Changed(object sender, NetworkNotificationEventArgs e)
+        {
+            Dispatcher.BeginInvoke(() =>
             {
-                t.Stop();
-                SourceText.Text = Sources.Current.Name;
-            };
-            t.Start();
+                if (DeviceNetworkInformation.IsNetworkAvailable) _lostShown = false;
+                bool online = DeviceNetworkInformation.IsNetworkAvailable;
+
+                if (online && _netError && !Posts.IsLoading)
+                {
+                    _netError = false;
+                    Posts.Reload();
+                }
+                UpdateTray();
+            });
         }
 
         // ---------- переключатель страниц ----------
@@ -415,21 +519,6 @@ namespace ArtHub
             SearchBox.Focus();
         }
 
-        // ---------- открытие поста ----------
-        private void List_SelectionChanged(object sender, SelectionChangedEventArgs e)
-        {
-            var list = (LongListSelector)sender;
-            var item = list.SelectedItem as ArtItem;
-            if (item == null) return;
-            list.SelectedItem = null;
-
-            if (list == PostsList) Posts.Anchor = item;
-            else _favAnchor = item;
-
-            Nav.Selected = item;
-            NavigationService.Navigate(new Uri("/DetailPage.xaml", UriKind.Relative));
-        }
-
         // ---------- меню ----------
         private void Refresh_Click(object sender, EventArgs e)
         {
@@ -452,11 +541,6 @@ namespace ArtHub
         private void Settings_Click(object sender, EventArgs e)
         {
             NavigationService.Navigate(new Uri("/SettingsPage.xaml", UriKind.Relative));
-        }
-
-        private void MainPivot_Loaded(object sender, RoutedEventArgs e)
-        {
-
         }
     }
 }

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Navigation;
 using Microsoft.Phone.Controls;
 
@@ -21,9 +22,16 @@ namespace ArtHub
 
             // чтобы начальная установка не считалась действием пользователя
             _init = true;
+
             HideAiSwitch.IsChecked = Settings.HideAi;
             HqSwitch.IsChecked = Settings.HighQualityGrid;
-            TileSwitch.IsChecked = Settings.TransparentTile;
+
+            TilePicker.ItemsSource = new[] { "Green", "System" };
+            TilePicker.SelectedIndex = Settings.TransparentTile ? 1 : 0;
+
+            GridPicker.ItemsSource = new[] { "2 columns", "3 columns", "4 columns" };
+            GridPicker.SelectedIndex = Settings.GridColumns - 2;
+
             _init = false;
         }
 
@@ -38,16 +46,27 @@ namespace ArtHub
 
             bool ai = HideAiSwitch.IsChecked == true;
             bool hq = HqSwitch.IsChecked == true;
-            bool tile = TileSwitch.IsChecked == true;
 
             if (ai != Settings.HideAi) Settings.HideAi = ai;
             if (hq != Settings.HighQualityGrid) Settings.HighQualityGrid = hq;
+        }
 
-            if (tile != Settings.TransparentTile)
+        private void Tile_Changed(object sender, SelectionChangedEventArgs e)
+        {
+            if (_init || TilePicker.SelectedIndex < 0) return;
+
+            bool system = TilePicker.SelectedIndex == 1;
+            if (system != Settings.TransparentTile)
             {
-                Settings.TransparentTile = tile;
-                Tiles.Apply(tile);
+                Settings.TransparentTile = system;
+                Tiles.Apply(system);
             }
+        }
+
+        private void Grid_Changed(object sender, SelectionChangedEventArgs e)
+        {
+            if (_init || GridPicker.SelectedIndex < 0) return;
+            Settings.GridColumns = GridPicker.SelectedIndex + 2;
         }
     }
 }

@@ -57,7 +57,7 @@ namespace ArtHub
         // кнопка изменить: отдельная страница
         private void Edit_Tap(object sender, System.Windows.Input.GestureEventArgs e)
         {
-            e.Handled = true;   // чтобы не сработал тап по строке
+            e.Handled = true;
             Source s = FromSender(sender);
             if (s == null) return;
 
@@ -78,15 +78,15 @@ namespace ArtHub
                 return;
             }
 
-            if (MessageBox.Show("Delete \"" + s.Name + "\"?", "delete", MessageBoxButton.OKCancel)
-                != MessageBoxResult.OK)
+            string text = string.Format("Delete \"{0}\"?", s.Name);
+            if (MessageBox.Show(text, "delete", MessageBoxButton.OKCancel) != MessageBoxResult.OK)
                 return;
 
             Sources.Remove(s);
             RefreshList();
         }
 
-        private void Add_Tap(object sender, System.Windows.Input.GestureEventArgs e)
+        private void Add_Click(object sender, RoutedEventArgs e)
         {
             NavigationService.Navigate(new Uri("/SourceEditPage.xaml", UriKind.Relative));
         }

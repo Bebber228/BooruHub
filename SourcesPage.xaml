@@ -76,7 +76,7 @@
         <Border Background="{StaticResource HeaderBg}" Padding="12,6,12,10">
             <StackPanel>
                 <Image Source="/Assets/logo.png" Height="32" Stretch="Uniform"
-       HorizontalAlignment="Left" VerticalAlignment="Center"/>
+                       HorizontalAlignment="Left"/>
                 <TextBlock x:Name="TitleText" Foreground="White" FontSize="40"
                            FontFamily="Segoe WP Light"/>
             </StackPanel>
@@ -86,8 +86,12 @@
             <StackPanel Margin="24,24,16,36">
                 <ItemsControl x:Name="SourceList" ItemTemplate="{StaticResource SourceRow}"/>
 
-                <TextBlock x:Name="AddRow" Text="+ add source" FontSize="30"
-                           Padding="0,12" Foreground="#FF0000AA" Tap="Add_Tap"/>
+                <!-- длинная кнопка по центру -->
+                <Button x:Name="AddRow" Content="add source" Width="441"
+                        HorizontalAlignment="Center" Margin="0,12,0,0"
+                        Background="{StaticResource HeaderBg}"
+                        BorderBrush="{StaticResource HeaderBg}"
+                        Foreground="White" Click="Add_Click"/>
             </StackPanel>
         </ScrollViewer>
     </Grid>

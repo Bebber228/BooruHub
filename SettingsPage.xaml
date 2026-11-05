@@ -39,7 +39,7 @@
         </Grid.RowDefinitions>
 
         <Border Background="{StaticResource HeaderBg}" Padding="12,6,12,10">
-            <StackPanel Margin="0,4,0,0">
+            <StackPanel>
                 <Image Source="/Assets/logo.png" Height="32" Stretch="Uniform"
                        HorizontalAlignment="Left"/>
                 <TextBlock Text="settings" Foreground="White" FontSize="40"
@@ -47,8 +47,8 @@
             </StackPanel>
         </Border>
 
-        <ScrollViewer Grid.Row="1">
-            <StackPanel Margin="24,24,24,24">
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+            <StackPanel Margin="24,24,24,120">
 
                 <!-- sources -->
                 <StackPanel Background="Transparent" Tap="Sources_Tap" Margin="0,0,0,36">
@@ -66,12 +66,12 @@
                                       Margin="-12,0,0,0"
                                       Checked="Switch_Changed" Unchecked="Switch_Changed">
                     <toolkit:ToggleSwitch.Header>
-                        <TextBlock Text="hide AI-generated posts" FontSize="24"
+                        <TextBlock Text="hide AI-generated posts" FontSize="20"
                                    Foreground="{StaticResource TextDark}"/>
                     </toolkit:ToggleSwitch.Header>
                 </toolkit:ToggleSwitch>
                 <TextBlock Text="Hide posts tagged as AI-generated or AI-assisted."
-                           FontSize="20" TextWrapping="Wrap" Margin="0,-6,0,36"
+                           FontSize="20" TextWrapping="Wrap" Margin="0,-20,0,36"
                            Foreground="{StaticResource HeaderBg}"/>
 
                 <!-- thumbnails quality -->
@@ -82,29 +82,37 @@
                                       Margin="-12,0,0,0"
                                       Checked="Switch_Changed" Unchecked="Switch_Changed">
                     <toolkit:ToggleSwitch.Header>
-                        <TextBlock Text="high-quality thumbnails" FontSize="24"
+                        <TextBlock Text="high-quality thumbnails" FontSize="20"
                                    Foreground="{StaticResource TextDark}"/>
                     </toolkit:ToggleSwitch.Header>
                 </toolkit:ToggleSwitch>
                 <TextBlock Text="Load larger previews in the grid. Looks better, but loads and opens more slowly."
-                           FontSize="20" TextWrapping="Wrap" Margin="0,-6,0,36"
+                           FontSize="20" TextWrapping="Wrap" Margin="0,-20,0,36"
                            Foreground="{StaticResource HeaderBg}"/>
 
-                <!-- transparent tile -->
-                <toolkit:ToggleSwitch x:Name="TileSwitch"
-                                      Background="{StaticResource PageBg}"
-                                      Foreground="{StaticResource HeaderBg}"
-                                      SwitchForeground="{StaticResource HeaderBg}"
-                                      Margin="-12,0,0,0"
-                                      Checked="Switch_Changed" Unchecked="Switch_Changed">
-                    <toolkit:ToggleSwitch.Header>
-                        <TextBlock Text="transparent tile" FontSize="24"
-                                   Foreground="{StaticResource TextDark}"/>
-                    </toolkit:ToggleSwitch.Header>
-                </toolkit:ToggleSwitch>
-                <TextBlock Text="Use tile images without a background, so the accent color shows through."
-                           FontSize="20" TextWrapping="Wrap" Margin="0,-6,0,0"
-                           Foreground="{StaticResource HeaderBg}"/>
+                <!-- tile appearance -->
+                <toolkit:ListPicker x:Name="TilePicker"
+                    Margin="-12,0,0,36"
+                    Foreground="{StaticResource HeaderBg}"
+                    SelectionChanged="Tile_Changed" Width="420">
+                    <toolkit:ListPicker.Header>
+                        <TextBlock Text="tile appearance" FontSize="20"
+                                   Foreground="{StaticResource HeaderBg}"/>
+                    </toolkit:ListPicker.Header>
+                </toolkit:ListPicker>
+
+                <!-- grid columns -->
+                <toolkit:ListPicker x:Name="GridPicker"
+                    Margin="-12,0,0,0"
+                    Foreground="{StaticResource HeaderBg}"
+                    SelectionChanged="Grid_Changed" Width="420">
+                    <toolkit:ListPicker.Header>
+                        <TextBlock Text="grid size" FontSize="20"
+                                   Foreground="{StaticResource HeaderBg}"/>
+                    </toolkit:ListPicker.Header>
+                </toolkit:ListPicker>
+
+               
             </StackPanel>
         </ScrollViewer>
     </Grid>

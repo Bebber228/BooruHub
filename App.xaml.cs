@@ -61,6 +61,7 @@ namespace ArtHub
         // Этот код не будет выполняться при повторной активации приложения
         private void Application_Launching(object sender, LaunchingEventArgs e)
         {
+            Settings.ClearSession();
             Tiles.Apply(Settings.TransparentTile);
         }
 
@@ -80,6 +81,7 @@ namespace ArtHub
         // Этот код не будет выполняться при деактивации приложения
         private void Application_Closing(object sender, ClosingEventArgs e)
         {
+            Settings.ClearSession();
         }
 
         // Код для выполнения в случае ошибки навигации
@@ -107,20 +109,16 @@ namespace ArtHub
             if (phoneApplicationInitialized)
                 return;
 
-            // Создайте кадр, но не задавайте для него значение RootVisual; это позволит
-            // экрану-заставке оставаться активным, пока приложение не будет готово для визуализации.
+            // сначала создаём фрейм
             RootFrame = new TransitionFrame();
             RootFrame.Background = new System.Windows.Media.SolidColorBrush(
-    System.Windows.Media.Color.FromArgb(255, 0xCE, 0xD9, 0xCC));
+                System.Windows.Media.Color.FromArgb(255, 0xCE, 0xD9, 0xCC));
+
+
             RootFrame.Navigated += CompleteInitializePhoneApplication;
-
-            // Обработка сбоев навигации
             RootFrame.NavigationFailed += RootFrame_NavigationFailed;
-
-            // Обработка запросов на сброс для очистки стека переходов назад
             RootFrame.Navigated += CheckForResetNavigation;
 
-            // Убедитесь, что инициализация не выполняется повторно
             phoneApplicationInitialized = true;
         }
 
