@@ -12,6 +12,7 @@
     shell:SystemTray.ForegroundColor="White"
     Background="{StaticResource PageBg}">
 
+
     <toolkit:TransitionService.NavigationInTransition>
         <toolkit:NavigationInTransition>
             <toolkit:NavigationInTransition.Backward>
@@ -40,7 +41,7 @@
         <DataTemplate x:Key="GridItem">
             <Grid Loaded="Tile_Loaded" Tap="Tile_Tap" Background="Transparent">
                 <Border Margin="2" Background="{StaticResource CardBg}">
-                    <Image Source="{Binding ImageUrl, Converter={StaticResource Img}, ConverterParameter=240}"
+                    <Image Source="{Binding ImageUrl, Converter={StaticResource Img}, ConverterParameter=200}"
                            Stretch="UniformToFill"/>
                 </Border>
                 <Border Margin="2" BorderBrush="#FF1E6FE0" BorderThickness="3"

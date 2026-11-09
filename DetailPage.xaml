@@ -9,7 +9,10 @@
     shell:SystemTray.IsVisible="True"
     shell:SystemTray.BackgroundColor="#FF4E6252"
     shell:SystemTray.ForegroundColor="White"
+    shell:SystemTray.Opacity="0.99"
     Background="{StaticResource PageBg}">
+    <!-- Opacity 0.99: страница лежит под панелью с часами, поэтому при смене её прозрачности
+         в просмотре картинки ничего не прыгает. Шапка тянется под панель (строки 0 и 1) -->
 
     <toolkit:TransitionService.NavigationInTransition>
         <toolkit:NavigationInTransition>
@@ -33,7 +36,9 @@
     </toolkit:TransitionService.NavigationOutTransition>
 
     <phone:PhoneApplicationPage.ApplicationBar>
-        <shell:ApplicationBar Mode="Default" Opacity="1"
+        <!-- Opacity 0.99: страница идёт под панелью (нет чёрной полоски, и при смене панели
+             в просмотре картинки ничего не прыгает). Место под панель — нижний отступ 96 у содержимого -->
+        <shell:ApplicationBar Mode="Default" Opacity="0.99"
                               BackgroundColor="#FF4E6252" ForegroundColor="White">
             <shell:ApplicationBarIconButton IconUri="/Assets/Icons/star.png"
                                             Text="favourite" Click="Fav_Click"/>
@@ -45,22 +50,35 @@
     </phone:PhoneApplicationPage.ApplicationBar>
 
     <Grid x:Name="LayoutRoot" Background="{StaticResource PageBg}">
+        <toolkit:GestureService.GestureListener>
+            <toolkit:GestureListener DragStarted="Drag_Started"
+                                     DragDelta="Drag_Delta"
+                                     DragCompleted="Drag_Completed"/>
+        </toolkit:GestureService.GestureListener>
+
         <Grid.RowDefinitions>
+            <RowDefinition Height="32"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
 
-        <Border Background="{StaticResource HeaderBg}" Padding="12,6,12,10">
-            <StackPanel Margin="0,4,0,0">
+        <!-- шапка начинается от самого верха экрана: под панелью с часами нет просвета -->
+        <Border Grid.Row="0" Grid.RowSpan="2" Background="{StaticResource HeaderBg}" Padding="12,38,12,10">
+            <StackPanel>
                 <Image Source="/Assets/logo.png" Height="32" Stretch="Uniform"
-       HorizontalAlignment="Left" VerticalAlignment="Center"/>
+                       HorizontalAlignment="Left"/>
                 <TextBlock x:Name="TitleText" Foreground="White" FontSize="40"
                            FontFamily="Segoe WP Light"/>
             </StackPanel>
         </Border>
 
-        <ScrollViewer x:Name="DetailScroll" Grid.Row="1">
-            <StackPanel Margin="12,12,12,24">
+        <ScrollViewer x:Name="DetailScroll" Grid.Row="2">
+            <ScrollViewer.RenderTransform>
+                <TranslateTransform x:Name="SlideT"/>
+            </ScrollViewer.RenderTransform>
+
+            <!-- снизу 96 = 72 (высота панели с кнопками) + 24: последние теги не прячутся под панель -->
+            <StackPanel Margin="12,12,12,240">
 
                 <Grid x:Name="MediaHost">
                     <Image x:Name="MainImage" Stretch="Uniform" Tap="MainImage_Tap"/>
@@ -82,15 +100,21 @@
                 <TextBlock x:Name="InfoText" FontSize="20" TextWrapping="Wrap"
                            Foreground="{StaticResource TextDim}" Margin="0,12,0,0"/>
 
+                <!-- show tags / hide tags: системная кнопка, рамка и текст цвета шапки -->
+                <Button x:Name="TagsButton" Content="show tags" Click="TagsButton_Click"
+                        Margin="-12,12,-12,0" HorizontalAlignment="Stretch"
+                        Foreground="{StaticResource HeaderBg}"
+                        BorderBrush="{StaticResource HeaderBg}"/>
+
                 <TextBlock x:Name="TagsStatus" Text="loading tags..." FontSize="20"
-                           TextWrapping="Wrap"
+                           TextWrapping="Wrap" Visibility="Collapsed"
                            Foreground="{StaticResource TextDim}" Margin="0,12,0,0"/>
-                <StackPanel x:Name="TagsPanel" Margin="0,0,0,12"/>
+                <StackPanel x:Name="TagsPanel" Margin="0,0,0,12" Visibility="Collapsed"/>
             </StackPanel>
         </ScrollViewer>
 
         <!-- просмотр картинки поверх всего -->
-        <Grid x:Name="ZoomOverlay" Grid.RowSpan="2" Visibility="Collapsed"
+        <Grid x:Name="ZoomOverlay" Grid.RowSpan="3" Visibility="Collapsed"
               Background="#80000000"
               ManipulationStarted="Zoom_ManipulationStarted"
               ManipulationDelta="Zoom_ManipulationDelta"
@@ -101,22 +125,15 @@
                     <toolkit:GestureListener DoubleTap="Zoom_DoubleTap"/>
                 </toolkit:GestureService.GestureListener>
 
-                <Image x:Name="ZoomImage" Stretch="Uniform"
-       RenderTransformOrigin="0.5,0.5">
+                <!-- IsHitTestVisible=False: жест ловит ZoomArea, координаты не зависят от масштаба -->
+                <Image x:Name="ZoomImage" Stretch="Uniform" IsHitTestVisible="False"
+                       RenderTransformOrigin="0.5,0.5">
                     <Image.RenderTransform>
                         <CompositeTransform x:Name="ZoomTransform"/>
                     </Image.RenderTransform>
                 </Image>
             </Grid>
-
-            <!-- закрыть -->
-            <Grid Width="96" Height="96" Margin="0,20,4,0"
-      HorizontalAlignment="Right" VerticalAlignment="Top"
-      Background="Transparent" Tap="Close_Tap">
-                <Ellipse Width="68" Height="68" Fill="#99000000"
-             Stroke="White" StrokeThickness="2"/>
-                <Image Source="/Assets/Icons/close.png" Width="48" Height="48"/>
-            </Grid>
+            <!-- кнопка close теперь на нижней полупрозрачной панели (создаётся в коде) -->
         </Grid>
     </Grid>
 </phone:PhoneApplicationPage>

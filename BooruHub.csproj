@@ -169,6 +169,7 @@
     <Content Include="Assets\Icons\delete.png">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
+    <Content Include="Assets\Icons\done.png" />
     <Content Include="Assets\Icons\edit.png">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>

@@ -93,6 +93,13 @@ namespace ArtHub
             _postsOffset = PostsScroll.VerticalOffset;
             _favOffset = FavScroll.VerticalOffset;
 
+            // из какого списка открыли пост, по нему и будет работать свайп
+            IList<ArtItem> list = MainPivot.SelectedItem == FavItem
+                ? (IList<ArtItem>)Favorites.Items
+                : (IList<ArtItem>)Posts.Items;
+
+            Nav.List = list;
+            Nav.Index = list.IndexOf(item);
             Nav.Selected = item;
             NavigationService.Navigate(new Uri("/DetailPage.xaml", UriKind.Relative));
         }
@@ -187,6 +194,7 @@ namespace ArtHub
             DeviceNetworkInformation.NetworkAvailabilityChanged -= Network_Changed;
             Favorites.Items.CollectionChanged -= Fav_Changed;
             _progress.IsVisible = false;
+
             base.OnNavigatedFrom(e);
         }
 

@@ -1,4 +1,5 @@
 ﻿using System.Windows;
+using System.Collections.Generic;
 using Newtonsoft.Json;
 
 namespace ArtHub
@@ -44,6 +45,8 @@ namespace ArtHub
     public static class Nav
     {
         public static ArtItem Selected;
-        public static string Query;     // тег, по которому надо искать при возврате на главную
+        public static string Query;               // тег, по которому надо искать при возврате на главную
+        public static IList<ArtItem> List;        // список, из которого открыт пост
+        public static int Index;                  // позиция поста в списке
     }
 }
