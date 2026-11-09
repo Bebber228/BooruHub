@@ -94,6 +94,7 @@
                 <toolkit:ListPicker x:Name="TilePicker"
                     Margin="-12,0,0,36"
                     Foreground="{StaticResource HeaderBg}"
+                    BorderBrush="{StaticResource HeaderBg}" Background="Transparent"
                     SelectionChanged="Tile_Changed" Width="420">
                     <toolkit:ListPicker.Header>
                         <TextBlock Text="tile appearance" FontSize="20"
@@ -105,6 +106,7 @@
                 <toolkit:ListPicker x:Name="GridPicker"
                     Margin="-12,0,0,0"
                     Foreground="{StaticResource HeaderBg}"
+                    BorderBrush="{StaticResource HeaderBg}" Background="Transparent"
                     SelectionChanged="Grid_Changed" Width="420">
                     <toolkit:ListPicker.Header>
                         <TextBlock Text="grid size" FontSize="20"
@@ -112,7 +114,6 @@
                     </toolkit:ListPicker.Header>
                 </toolkit:ListPicker>
 
-               
             </StackPanel>
         </ScrollViewer>
     </Grid>
