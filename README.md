@@ -2,6 +2,8 @@
 ![Top](https://github.com/Bebber228/BooruHub/blob/main/top.png?raw=true) 
 A Booru viewer for sites built on and powered by Gelbooru for Windows Phone 8.0+
 
+<a href="https://store.live.net.co/app/946" target="_blank"><img src="https://edge.live.net.co/images/store/2025_GetButton_Black.png" style="width: 256px;" alt="Get BooruHub from Live Store"></a>
+
 ---
 This simple client for WP allows you to fully browse the feed, zoom in on images, view GIFs and videos, search by tags, and add new data sources (specifically, sites built on the Gelbooru 0.2 framework—newer versions have not been verified or tested).
 
