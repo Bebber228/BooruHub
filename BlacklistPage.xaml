@@ -1,0 +1,204 @@
+﻿<phone:PhoneApplicationPage
+    x:Class="ArtHub.BlacklistPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:phone="clr-namespace:Microsoft.Phone.Controls;assembly=Microsoft.Phone"
+    xmlns:shell="clr-namespace:Microsoft.Phone.Shell;assembly=Microsoft.Phone"
+    xmlns:toolkit="clr-namespace:Microsoft.Phone.Controls;assembly=Microsoft.Phone.Controls.Toolkit"
+    SupportedOrientations="Portrait" Orientation="Portrait"
+    shell:SystemTray.IsVisible="True"
+    shell:SystemTray.BackgroundColor="#FF4E6252"
+    shell:SystemTray.ForegroundColor="White"
+    Background="{StaticResource PageBg}">
+
+    <toolkit:TransitionService.NavigationInTransition>
+        <toolkit:NavigationInTransition>
+            <toolkit:NavigationInTransition.Backward>
+                <toolkit:TurnstileTransition Mode="BackwardIn"/>
+            </toolkit:NavigationInTransition.Backward>
+            <toolkit:NavigationInTransition.Forward>
+                <toolkit:TurnstileTransition Mode="ForwardIn"/>
+            </toolkit:NavigationInTransition.Forward>
+        </toolkit:NavigationInTransition>
+    </toolkit:TransitionService.NavigationInTransition>
+    <toolkit:TransitionService.NavigationOutTransition>
+        <toolkit:NavigationOutTransition>
+            <toolkit:NavigationOutTransition.Backward>
+                <toolkit:TurnstileTransition Mode="BackwardOut"/>
+            </toolkit:NavigationOutTransition.Backward>
+            <toolkit:NavigationOutTransition.Forward>
+                <toolkit:TurnstileTransition Mode="ForwardOut"/>
+            </toolkit:NavigationOutTransition.Forward>
+        </toolkit:NavigationOutTransition>
+    </toolkit:TransitionService.NavigationOutTransition>
+
+    <phone:PhoneApplicationPage.Resources>
+        <!-- круглая кнопка-корзина, как кнопка поиска; при нажатии круг заливается -->
+        <Style x:Key="DeleteRoundButton" TargetType="Button">
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Grid x:Name="Root" Width="76" Height="76" Background="Transparent">
+                            <VisualStateManager.VisualStateGroups>
+                                <VisualStateGroup x:Name="CommonStates">
+                                    <VisualState x:Name="Normal"/>
+                                    <VisualState x:Name="MouseOver"/>
+                                    <VisualState x:Name="Pressed">
+                                        <Storyboard>
+                                            <ObjectAnimationUsingKeyFrames Storyboard.TargetName="Circle"
+                                                                           Storyboard.TargetProperty="Fill">
+                                                <DiscreteObjectKeyFrame KeyTime="0" Value="{StaticResource HeaderBg}"/>
+                                            </ObjectAnimationUsingKeyFrames>
+                                            <ObjectAnimationUsingKeyFrames Storyboard.TargetName="Glyph"
+                                                                           Storyboard.TargetProperty="Fill">
+                                                <DiscreteObjectKeyFrame KeyTime="0" Value="{StaticResource PageBg}"/>
+                                            </ObjectAnimationUsingKeyFrames>
+                                        </Storyboard>
+                                    </VisualState>
+                                    <VisualState x:Name="Disabled">
+                                        <Storyboard>
+                                            <DoubleAnimation Duration="0" Storyboard.TargetName="Root"
+                                                             Storyboard.TargetProperty="Opacity" To="0.4"/>
+                                        </Storyboard>
+                                    </VisualState>
+                                </VisualStateGroup>
+                            </VisualStateManager.VisualStateGroups>
+
+                            <Ellipse x:Name="Circle" Width="48" Height="48" Fill="Transparent"
+                                     Stroke="{StaticResource HeaderBg}" StrokeThickness="3"/>
+                            <Rectangle x:Name="Glyph" Fill="{StaticResource HeaderBg}"
+                                       Width="46" Height="46">
+                                <Rectangle.OpacityMask>
+                                    <ImageBrush ImageSource="/Assets/Icons/delete_color.png" Stretch="Uniform"/>
+                                </Rectangle.OpacityMask>
+                            </Rectangle>
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- круглая кнопка добавления, как корзина -->
+        <Style x:Key="AddRoundButton" TargetType="Button">
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Grid x:Name="Root" Width="76" Height="76" Background="Transparent">
+                            <VisualStateManager.VisualStateGroups>
+                                <VisualStateGroup x:Name="CommonStates">
+                                    <VisualState x:Name="Normal"/>
+                                    <VisualState x:Name="MouseOver"/>
+                                    <VisualState x:Name="Pressed">
+                                        <Storyboard>
+                                            <ObjectAnimationUsingKeyFrames Storyboard.TargetName="Circle"
+                                                                           Storyboard.TargetProperty="Fill">
+                                                <DiscreteObjectKeyFrame KeyTime="0" Value="{StaticResource HeaderBg}"/>
+                                            </ObjectAnimationUsingKeyFrames>
+                                            <ObjectAnimationUsingKeyFrames Storyboard.TargetName="Glyph"
+                                                                           Storyboard.TargetProperty="Fill">
+                                                <DiscreteObjectKeyFrame KeyTime="0" Value="{StaticResource PageBg}"/>
+                                            </ObjectAnimationUsingKeyFrames>
+                                        </Storyboard>
+                                    </VisualState>
+                                    <VisualState x:Name="Disabled">
+                                        <Storyboard>
+                                            <DoubleAnimation Duration="0" Storyboard.TargetName="Root"
+                                                             Storyboard.TargetProperty="Opacity" To="0.4"/>
+                                        </Storyboard>
+                                    </VisualState>
+                                </VisualStateGroup>
+                            </VisualStateManager.VisualStateGroups>
+
+                            <Ellipse x:Name="Circle" Width="48" Height="48" Fill="Transparent"
+                                     Stroke="{StaticResource HeaderBg}" StrokeThickness="3"/>
+                            <Rectangle x:Name="Glyph" Fill="{StaticResource HeaderBg}"
+                                       Width="46" Height="46">
+                                <Rectangle.OpacityMask>
+                                    <ImageBrush ImageSource="/Assets/Icons/add_color.png" Stretch="Uniform"/>
+                                </Rectangle.OpacityMask>
+                            </Rectangle>
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- строка тега: название и кнопка удаления справа -->
+        <DataTemplate x:Key="TagRow">
+            <Grid Margin="0,0,-12,0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <TextBlock Text="{Binding}" FontSize="32" TextTrimming="WordEllipsis"
+                           VerticalAlignment="Center"
+                           Foreground="{StaticResource TextDark}"/>
+                <Button Grid.Column="1" Style="{StaticResource DeleteRoundButton}"
+                        Click="Delete_Click"/>
+            </Grid>
+        </DataTemplate>
+
+        <!-- подсказка тега, как в поиске -->
+        <DataTemplate x:Key="SuggestRow">
+            <TextBlock Text="{Binding Label}" FontSize="26" Margin="12,8"
+                       Foreground="{StaticResource TextDark}"
+                       Tap="Suggestion_Tap"/>
+        </DataTemplate>
+    </phone:PhoneApplicationPage.Resources>
+
+    <Grid x:Name="LayoutRoot" Background="{StaticResource PageBg}">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <Border Background="{StaticResource HeaderBg}" Padding="12,6,12,10">
+            <StackPanel>
+                <Image Source="/Assets/logo.png" Height="32" Stretch="Uniform"
+                       HorizontalAlignment="Left"/>
+                <TextBlock Text="blacklist" Foreground="White" FontSize="40"
+                           FontFamily="Segoe WP Light"/>
+            </StackPanel>
+        </Border>
+
+        <ScrollViewer Grid.Row="1">
+            <StackPanel Margin="24,24,24,36">
+
+                <TextBlock Text="Posts with these tags are hidden from the feed. Turn the blacklist on or off from the menu on the main screen."
+                           FontSize="20" TextWrapping="Wrap" Margin="0,0,0,12"
+                           Foreground="{StaticResource HeaderBg}"/>
+
+                <!-- ввод тегов + кнопка add -->
+                <Grid Margin="-12,0,-12,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+
+                    <TextBox x:Name="TagBox" FontSize="24"
+                             TextChanged="TagBox_TextChanged" KeyUp="TagBox_KeyUp"/>
+
+                    <Button Grid.Column="1" Style="{StaticResource AddRoundButton}"
+                            Click="Add_Click" VerticalAlignment="Center"/>
+                </Grid>
+
+                <!-- подсказки тегов -->
+                <Border x:Name="SuggestBox" Visibility="Collapsed"
+                        Background="{StaticResource CardBg}" Margin="0,0,0,12">
+                    <ItemsControl x:Name="Suggestions" ItemTemplate="{StaticResource SuggestRow}"/>
+                </Border>
+
+                <TextBlock Text="Separate tags with spaces or commas to add several at once."
+                           FontSize="20" TextWrapping="Wrap" Margin="0,0,0,24"
+                           Foreground="{StaticResource TextDim}"/>
+
+                <TextBlock x:Name="EmptyText" Text="No blocked tags yet."
+                           FontSize="24" Visibility="Collapsed"
+                           Foreground="{StaticResource TextDim}"/>
+
+                <ItemsControl x:Name="TagList" ItemTemplate="{StaticResource TagRow}"/>
+            </StackPanel>
+        </ScrollViewer>
+    </Grid>
+</phone:PhoneApplicationPage>

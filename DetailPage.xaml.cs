@@ -27,7 +27,10 @@ namespace ArtHub
         private ArtItem _item;
         private BitmapImage _fullImage;
         private bool _downloading;
-        private bool _gone;               // страницу закрыли
+        private bool _gone;               // страницу закрыли (ушли назад в ленту)
+        private bool _suspended;          // приложение свернули или открыли браузер / плеер
+        private bool _imageReady;         // средний размер картинки показан
+        private bool _fullReady;          // оригинал показан
         private int _gen;                 // номер показанного поста, отсекает устаревшие задачи
 
         private DispatcherTimer _rowTimer;
@@ -65,8 +68,53 @@ namespace ArtHub
             Loaded += DetailPage_Loaded;
         }
 
+        protected override void OnNavigatedTo(NavigationEventArgs e)
+        {
+            base.OnNavigatedTo(e);
+
+            // приложение выгружалось из памяти: данных поста уже нет — возвращаемся в ленту,
+            // она сама восстановит последнюю страницу
+            if (_item == null)
+            {
+                Dispatcher.BeginInvoke(() =>
+                {
+                    if (NavigationService.CanGoBack) NavigationService.GoBack();
+                });
+                return;
+            }
+
+            if (!_suspended) return;
+            _suspended = false;
+
+            // пока приложение было свёрнуто, загрузки могли оборваться — запускаем заново
+            if (!_imageReady)
+            {
+                LoadItem(_item);
+            }
+            else if (!_fullReady && !IsMedia && !IsHuge())
+            {
+                _fullImage = null;
+                StartFull(_item.SampleUrl ?? _item.ImageUrl, _gen);
+            }
+
+            if (_tagsShown && _rows != null && _rowPos < _rows.Count && _rowTimer != null)
+                _rowTimer.Start();
+        }
+
         protected override void OnNavigatedFrom(NavigationEventArgs e)
         {
+            // свернули приложение, открыли браузер или плеер: страница остаётся,
+            // ничего не очищаем, просто ставим на паузу
+            if (e.NavigationMode != NavigationMode.Back)
+            {
+                _suspended = true;
+                if (_rowTimer != null) _rowTimer.Stop();
+                if (_gifTimer != null) _gifTimer.Stop();
+                base.OnNavigatedFrom(e);
+                return;
+            }
+
+            // ушли назад в ленту: страница больше не нужна
             _gone = true;
             if (_rowTimer != null) _rowTimer.Stop();
             if (_gifTimer != null) _gifTimer.Stop();
@@ -194,6 +242,8 @@ namespace ArtHub
             if (_rowTimer != null) _rowTimer.Stop();
             if (_gifTimer != null) _gifTimer.Stop();
             _fullImage = null;
+            _imageReady = false;
+            _fullReady = false;
 
             try { GifBrowser.NavigateToString("<html><body style=\"background:#000\"></body></html>"); }
             catch { }
@@ -486,6 +536,8 @@ namespace ArtHub
                 _fullImage.ImageOpened += (s2, e2) =>
                 {
                     if (_gone || gen != _gen) return;
+                    _imageReady = true;
+                    _fullReady = true;
                     MainImage.Source = _fullImage;
                     if (ZoomOverlay.Visibility == Visibility.Visible)
                         ZoomImage.Source = _fullImage;
@@ -722,6 +774,8 @@ namespace ArtHub
             {
                 if (_gone || gen != _gen) return;
 
+                _imageReady = true;
+
                 // подменяем превью на средний размер, если оригинал ещё не показан
                 if (_fullImage == null || MainImage.Source != _fullImage)
                     MainImage.Source = first;
@@ -751,6 +805,8 @@ namespace ArtHub
             _fullImage.ImageOpened += (s, e) =>
             {
                 if (_gone || gen != _gen) return;
+                _imageReady = true;
+                _fullReady = true;
                 MainImage.Source = _fullImage;
 
                 if (ZoomOverlay.Visibility == Visibility.Visible)

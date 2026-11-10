@@ -160,7 +160,7 @@ namespace ArtHub
             Task first = await Task.WhenAny(work, Task.Delay(timeoutMs)).ConfigureAwait(false);
             if (first != work)
             {
-                work.ContinueWith(t => { var ignored = t.Exception; });
+                Task observed = work.ContinueWith(t => { var ignored = t.Exception; });
                 throw new Exception("Сайт не ответил вовремя.");
             }
             return await work.ConfigureAwait(false);
@@ -226,6 +226,14 @@ namespace ArtHub
             return false;
         }
 
+        // есть ли у поста хоть один тег из списка
+        static bool HasAny(string tags, HashSet<string> list)
+        {
+            foreach (string tag in tags.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries))
+                if (list.Contains(tag.ToLowerInvariant())) return true;
+            return false;
+        }
+
         static bool IsAi(string tags)
         {
             foreach (string tag in tags.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries))
@@ -260,6 +268,11 @@ namespace ArtHub
             bool hideAi = Settings.HideAi;
             bool hq = Settings.HighQualityGrid;
 
+            // пользовательский чёрный список (если включён в меню главной страницы)
+            HashSet<string> userBlack = Settings.UseBlacklist
+                ? new HashSet<string>(Settings.Blacklist)
+                : null;
+
             string url = host + "/index.php?page=dapi&s=post&q=index&json=1&limit=" + PageSize
                 + "&pid=" + page
                 + "&tags=" + Uri.EscapeDataString((tags ?? "").Trim()) + auth;
@@ -270,10 +283,10 @@ namespace ArtHub
                 throw new Exception("Ответ сайта: " + (body.Length > 200 ? body.Substring(0, 200) : body));
 
             // разбор в фоне
-            return await Task.Run(() => ParsePosts(body, host, hideAi, hq));
+            return await Task.Run(() => ParsePosts(body, host, hideAi, hq, userBlack));
         }
 
-        static PostPage ParsePosts(string body, string host, bool hideAi, bool hq)
+        static PostPage ParsePosts(string body, string host, bool hideAi, bool hq, HashSet<string> userBlack)
         {
             string site = host.Replace("//api.", "//");   // страница работы на основном сайте
 
@@ -286,6 +299,7 @@ namespace ArtHub
                 string tagStr = System.Net.HttpUtility.HtmlDecode(((string)d["tags"] ?? "").Trim());
                 if (Blocked(tagStr)) continue;
                 if (hideAi && IsAi(tagStr)) continue;
+                if (userBlack != null && userBlack.Count > 0 && HasAny(tagStr, userBlack)) continue;
 
                 string dir = (string)d["directory"];
                 string image = (string)d["image"];

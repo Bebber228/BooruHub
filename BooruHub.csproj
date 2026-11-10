@@ -90,6 +90,9 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="BlacklistPage.xaml.cs">
+      <DependentUpon>BlacklistPage.xaml</DependentUpon>
+    </Compile>
     <Compile Include="Classes\Api.cs" />
     <Compile Include="App.xaml.cs">
       <DependentUpon>App.xaml</DependentUpon>
@@ -130,6 +133,10 @@
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </ApplicationDefinition>
+    <Page Include="BlacklistPage.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
     <Page Include="DetailPage.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
@@ -159,16 +166,20 @@
     </None>
   </ItemGroup>
   <ItemGroup>
+    <Content Include="Assets\about.png" />
     <Content Include="Assets\AlignmentGrid.png" />
     <Content Include="Assets\ApplicationIcon.png">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
+    <Content Include="Assets\dezhnuts.jpeg" />
+    <Content Include="Assets\Icons\add_color.png" />
     <Content Include="Assets\Icons\close.png">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
     <Content Include="Assets\Icons\delete.png">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
+    <Content Include="Assets\Icons\delete_color.png" />
     <Content Include="Assets\Icons\done.png" />
     <Content Include="Assets\Icons\edit.png">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
@@ -176,6 +187,10 @@
     <Content Include="Assets\Icons\image_multiple.png">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
+    <Content Include="Assets\Icons\lost_connect.png" />
+    <Content Include="Assets\Icons\magnify.png" />
+    <Content Include="Assets\Icons\no_image.png" />
+    <Content Include="Assets\Icons\page_arrow_color.png" />
     <Content Include="Assets\Icons\pause.png">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
@@ -216,6 +231,7 @@
     <Content Include="Assets\Tiles\small_nocolor.png" />
     <Content Include="Assets\Tiles\wide.png" />
     <Content Include="Assets\Tiles\wide_nocolor.png" />
+    <Content Include="Assets\vine_boom.wav" />
     <Content Include="icon.png" />
     <Content Include="orig.png" />
     <Content Include="README_FIRST.txt" />

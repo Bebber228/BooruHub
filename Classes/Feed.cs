@@ -12,6 +12,8 @@ namespace ArtHub
         public int Page { get; private set; }      // 1, 2, 3...; 0 = ещё ничего не открывали
         public bool HasNext { get; private set; }
         public bool IsLoading { get; private set; }
+        public bool Failed { get; private set; }   // последняя загрузка не удалась (нет связи с сервером)
+        public int RawCount { get; private set; }  // сколько постов вернул сайт до фильтров
         public ArtItem Anchor;                     // последняя открытая работа
 
         public event Action Changed;
@@ -35,6 +37,8 @@ namespace ArtHub
             Anchor = null;
             HasNext = false;
             IsLoading = true;
+            Failed = false;
+            RawCount = 0;
             Notify();
             Load(0, _gen);
         }
@@ -74,6 +78,7 @@ namespace ArtHub
                     }
 
                     IsLoading = false;
+                    Failed = true;
                     HasNext = true;   // чтобы можно было перейти на другую страницу
                     Notify();
                     var h = Error;
@@ -84,6 +89,7 @@ namespace ArtHub
                 }
 
                 HasNext = page.Raw >= Api.PageSize;
+                RawCount = page.Raw;
 
                 // добавляем порциями, чтобы сетка успевала перерисовываться
                 int inChunk = 0;
@@ -111,6 +117,7 @@ namespace ArtHub
             {
                 if (gen != _gen) return;
                 IsLoading = false;
+                Failed = true;
                 HasNext = true;
                 Notify();
                 var pl = PageLoaded;

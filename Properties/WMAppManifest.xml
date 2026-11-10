@@ -1,7 +1,7 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Deployment xmlns="http://schemas.microsoft.com/windowsphone/2012/deployment" AppPlatformVersion="8.0">
   <DefaultLanguage xmlns="" code="en-US" />
-  <App xmlns="" ProductID="{9a698272-6da8-4ccf-9fc1-359c72ca1a89}" Title="BooruHub" RuntimeType="Silverlight" Version="0.0.3.1" Genre="apps.normal" Author="Bebber" Description="A Booru viewer for sites built on and powered by Gelbooru" Publisher="Bebber" PublisherID="{7bb2d740-62b6-41c0-8713-4fb427a16f1a}">
+  <App xmlns="" ProductID="{9a698272-6da8-4ccf-9fc1-359c72ca1a89}" Title="BooruHub" RuntimeType="Silverlight" Version="0.0.4.0" Genre="apps.normal" Author="Bebber" Description="A Booru viewer for sites built on and powered by Gelbooru" Publisher="Bebber" PublisherID="{7bb2d740-62b6-41c0-8713-4fb427a16f1a}">
     <IconPath IsRelative="true" IsResource="false">icon.png</IconPath>
     <Capabilities>
       <Capability Name="ID_CAP_NETWORKING" />

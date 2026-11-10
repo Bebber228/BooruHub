@@ -1,4 +1,7 @@
-﻿using System.IO.IsolatedStorage;
+﻿using System;
+using System.Collections.Generic;
+using System.IO.IsolatedStorage;
+using System.Linq;
 
 namespace ArtHub
 {
@@ -44,6 +47,62 @@ namespace ArtHub
                 return v < 2 ? 2 : (v > 4 ? 4 : v);
             }
             set { S["gridCols"] = value; S.Save(); }
+        }
+
+        // ---------- чёрный список пользователя ----------
+        // включён ли (переключается в меню главной страницы)
+        public static bool UseBlacklist
+        {
+            get { return GetBool("useBlacklist", true); }
+            set { S["useBlacklist"] = value; S.Save(); Version++; }
+        }
+
+        // теги хранятся одной строкой через пробел, по алфавиту
+        public static List<string> Blacklist
+        {
+            get
+            {
+                string v;
+                if (!S.TryGetValue("blacklist", out v) || string.IsNullOrEmpty(v))
+                    return new List<string>();
+                return v.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries).ToList();
+            }
+        }
+
+        // «Blue Hair » → «blue_hair», как теги пишутся на сайте
+        public static string NormalizeTag(string tag)
+        {
+            string t = (tag ?? "").Trim().ToLowerInvariant().TrimStart('-');
+            while (t.Contains("  ")) t = t.Replace("  ", " ");
+            return t.Replace(' ', '_');
+        }
+
+        // false, если тег пустой или уже есть в списке
+        public static bool AddToBlacklist(string tag)
+        {
+            string t = NormalizeTag(tag);
+            if (t.Length == 0) return false;
+
+            List<string> list = Blacklist;
+            if (list.Contains(t)) return false;
+
+            list.Add(t);
+            list.Sort(StringComparer.Ordinal);
+            SaveBlacklist(list);
+            return true;
+        }
+
+        public static void RemoveFromBlacklist(string tag)
+        {
+            List<string> list = Blacklist;
+            if (list.Remove(tag)) SaveBlacklist(list);
+        }
+
+        static void SaveBlacklist(List<string> list)
+        {
+            S["blacklist"] = string.Join(" ", list);
+            S.Save();
+            Version++;
         }
 
         // ---------- сессия ----------

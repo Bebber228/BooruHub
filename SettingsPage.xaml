@@ -58,6 +58,14 @@
                                Foreground="{StaticResource HeaderBg}"/>
                 </StackPanel>
 
+                <!-- blacklist -->
+                <StackPanel Background="Transparent" Tap="Blacklist_Tap" Margin="0,0,0,36">
+                    <TextBlock Text="blacklist" FontSize="34"
+                               Foreground="{StaticResource TextDark}"/>
+                    <TextBlock x:Name="BlacklistInfo" FontSize="20" TextWrapping="Wrap"
+                               Foreground="{StaticResource HeaderBg}"/>
+                </StackPanel>
+
                 <!-- AI filter -->
                 <toolkit:ToggleSwitch x:Name="HideAiSwitch"
                                       Background="{StaticResource PageBg}"
@@ -113,6 +121,23 @@
                                    Foreground="{StaticResource HeaderBg}"/>
                     </toolkit:ListPicker.Header>
                 </toolkit:ListPicker>
+
+                <!-- о программе: большой логотип по центру, название с версией, описание, автор -->
+                <StackPanel Margin="0,60,0,0" HorizontalAlignment="Center">
+                    <!-- пасхалка: 5 нажатий подряд -->
+                    <Image Source="/Assets/about.png" Width="300" Stretch="Uniform"
+                           HorizontalAlignment="Center" Tap="AboutLogo_Tap"/>
+                    <TextBlock x:Name="AboutTitle" FontSize="28" FontFamily="Segoe WP Light"
+                               HorizontalAlignment="Center" Margin="0,16,0,0"
+                               Foreground="{StaticResource TextDark}"/>
+                    <TextBlock Text="A Booru viewer for sites built on and powered by Gelbooru for Windows Phone 8.0+"
+                               FontSize="20" TextWrapping="Wrap" TextAlignment="Center"
+                               Margin="0,6,0,0"
+                               Foreground="{StaticResource TextDim}"/>
+                    <TextBlock Text="created by Bebber" FontSize="20"
+                               HorizontalAlignment="Center" Margin="0,6,0,0"
+                               Foreground="{StaticResource TextDim}"/>
+                </StackPanel>
 
             </StackPanel>
         </ScrollViewer>

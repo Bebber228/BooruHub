@@ -37,7 +37,8 @@ namespace ArtHub
         private bool _lostShown;
 
         private readonly DispatcherTimer _lostTimer =
-    new DispatcherTimer { Interval = TimeSpan.FromSeconds(3) };
+            new DispatcherTimer { Interval = TimeSpan.FromSeconds(3) };
+
         public MainPage()
         {
             InitializeComponent();
@@ -137,6 +138,7 @@ namespace ArtHub
             Favorites.Items.CollectionChanged += Fav_Changed;
 
             SourceText.Text = Sources.Current.Name;
+            UpdateBlacklistItem();
 
             bool sourcesChanged = _seenVersion != Sources.Version;
             bool aiChanged = _seenAi != Settings.Version;
@@ -243,14 +245,59 @@ namespace ArtHub
             if (History.Count > 50) History.RemoveAt(0);
         }
 
-        // ---------- загрузка и пустое избранное ----------
+        // ---------- загрузка, сообщения и пустое избранное ----------
         private void UpdateBusy()
         {
             bool loading = Posts.IsLoading;
             if (loading) _netError = false;
 
-            PagerRoot.Visibility = (!loading && Posts.Page >= 1) ? Visibility.Visible : Visibility.Collapsed;
+            bool opened = !loading && Posts.Page >= 1;
+            bool lost = opened && Posts.Failed;
+            bool empty = opened && !lost && Posts.Items.Count == 0;
+
+            // нет связи: сетку и страницы прячем, показываем сообщение
+            LostPanel.Visibility = lost ? Visibility.Visible : Visibility.Collapsed;
+            PostsGrid.Visibility = lost ? Visibility.Collapsed : Visibility.Visible;
+
+            // пусто: если сайт посты вернул, значит их скрыли фильтры или блэклист
+            EmptyPanel.Visibility = empty ? Visibility.Visible : Visibility.Collapsed;
+            if (empty)
+            {
+                EmptyText.Text = Posts.RawCount > 0
+                    ? "All posts on this page are hidden by the blacklist or filters"
+                    : (Settings.UseBlacklist && Settings.Blacklist.Count > 0
+                        ? "Nothing found. The blacklist is on and may hide some posts"
+                        : "Nothing found");
+            }
+
+            // страницы остаются, если есть куда листать
+            bool pager = opened && !lost && (!empty || Posts.HasNext || Posts.Page > 1);
+            PagerRoot.Visibility = pager ? Visibility.Visible : Visibility.Collapsed;
+            PlacePager(empty);
+
             UpdateTray();
+        }
+
+        // пустая страница: переключатель внизу вкладки, под сообщением;
+        // обычная: в ленте после сетки
+        private void PlacePager(bool bottom)
+        {
+            Panel target = bottom ? (Panel)PostsRoot : PostsStack;
+            var parent = PagerRoot.Parent as Panel;
+            if (parent == target) return;
+
+            if (parent != null) parent.Children.Remove(PagerRoot);
+            PagerRoot.VerticalAlignment = bottom ? VerticalAlignment.Bottom : VerticalAlignment.Top;
+            target.Children.Add(PagerRoot);   // в ленте он последний, в Grid — поверх всего
+        }
+
+        // тап по сообщению «нет связи»: попробовать ещё раз
+        private void Lost_Tap(object sender, System.Windows.Input.GestureEventArgs e)
+        {
+            if (Posts.IsLoading) return;
+            _netError = false;
+            _lostShown = false;
+            Posts.Reload();
         }
 
         private void UpdateTray()
@@ -549,6 +596,27 @@ namespace ArtHub
         private void Settings_Click(object sender, EventArgs e)
         {
             NavigationService.Navigate(new Uri("/SettingsPage.xaml", UriKind.Relative));
+        }
+
+        // пункт меню «blacklist» — четвёртый (индекс 3)
+        private void UpdateBlacklistItem()
+        {
+            var item = ApplicationBar.MenuItems[3] as ApplicationBarMenuItem;
+            if (item != null)
+                item.Text = Settings.UseBlacklist ? "blacklist: on" : "blacklist: off";
+        }
+
+        private void Blacklist_Click(object sender, EventArgs e)
+        {
+            Settings.UseBlacklist = !Settings.UseBlacklist;
+            _seenAi = Settings.Version;   // ленту перезагружаем сразу, при возврате повторно не нужно
+            UpdateBlacklistItem();
+
+            if (Posts.Page >= 1)
+            {
+                _scrollTop = true;
+                Posts.Reload();
+            }
         }
     }
 }
