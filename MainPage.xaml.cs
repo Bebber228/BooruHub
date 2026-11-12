@@ -28,7 +28,7 @@ namespace ArtHub
         static readonly List<KeyValuePair<string, int>> History = new List<KeyValuePair<string, int>>();
 
         private readonly ProgressIndicator _progress =
-            new ProgressIndicator { IsIndeterminate = true, IsVisible = false };
+            new ProgressIndicator { IsIndeterminate = false, IsVisible = false };
         private readonly DispatcherTimer _timer =
             new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(350) };
         private string _skipText;
@@ -197,6 +197,10 @@ namespace ArtHub
             Favorites.Items.CollectionChanged -= Fav_Changed;
             _progress.IsVisible = false;
 
+            // полоса загрузки не крутится, пока страница не видна
+            LoadBar.IsIndeterminate = false;
+            LoadBar.Visibility = Visibility.Collapsed;
+
             base.OnNavigatedFrom(e);
         }
 
@@ -312,15 +316,18 @@ namespace ArtHub
                 _lostTimer.Start();
             }
 
-            if (lost && _lostTimer.IsEnabled)
+            bool showLost = lost && _lostTimer.IsEnabled;
+            bool showLoading = !showLost && Posts.IsLoading;
+
+            // в панели с часами только текст, без системных точек цвета акцента
+            _progress.IsIndeterminate = false;
+            if (showLost)
             {
-                _progress.IsIndeterminate = false;
                 _progress.Text = "connection lost";
                 _progress.IsVisible = true;
             }
-            else if (Posts.IsLoading)
+            else if (showLoading)
             {
-                _progress.IsIndeterminate = true;
                 _progress.Text = "loading posts...";
                 _progress.IsVisible = true;
             }
@@ -328,6 +335,10 @@ namespace ArtHub
             {
                 _progress.IsVisible = false;
             }
+
+            // своя полоса загрузки; анимация включена, только пока она видна
+            LoadBar.IsIndeterminate = showLoading;
+            LoadBar.Visibility = showLoading ? Visibility.Visible : Visibility.Collapsed;
         }
 
         private void Fav_Changed(object sender, NotifyCollectionChangedEventArgs e)
